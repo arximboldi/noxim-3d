@@ -20,10 +20,10 @@ EXE    = $(MODULE)
 .SUFFIXES: .cpp .o 
 
 $(EXE): $(OBJS) $(SYSTEMC)/lib/libsystemc-2.2.a 
-	$(CC) $(CFLAGS) $(INCDIR) $(LIBDIR) -o $@ $(OBJS) $(LIBS) 2>&1 | c++filt
+	$(CC) -g $(CFLAGS) $(INCDIR) $(LIBDIR) -o $@ $(OBJS) $(LIBS) 2>&1 | c++filt
 
 .cpp.o:
-	$(CC) $(CFLAGS) $(INCDIR) -c $<
+	$(CC) -g $(CFLAGS) $(INCDIR) -c $<
 
 clean:
 	rm -f $(OBJS) *~ $(EXE) core

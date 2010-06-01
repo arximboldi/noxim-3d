@@ -27,7 +27,10 @@ void showHelp(char selfname[])
 	<< DEFAULT_MESH_DIM_X << ")" << endl;
     cout <<
 	"\t-dimy N\t\tSet the mesh Y dimension to the specified integer value (default "
-	<< DEFAULT_MESH_DIM_Y << ")" << endl;
+	 << DEFAULT_MESH_DIM_Y << ")" << endl;
+    cout <<
+	"\t-dimz N\t\tSet the mesh Z dimension to the specified integer value (default "
+	<< DEFAULT_MESH_DIM_Z << ")" << endl;
     cout <<
 	"\t-buffer N\tSet the buffer depth of each channel of the router to the specified integer value [flits] (default "
 	<< DEFAULT_BUFFER_DEPTH << ")" << endl;
@@ -120,6 +123,7 @@ void showConfig()
     //  cout << "- trace_filename = " << NoximGlobalParams::trace_filename << endl;
     cout << "- mesh_dim_x = " << NoximGlobalParams::mesh_dim_x << endl;
     cout << "- mesh_dim_y = " << NoximGlobalParams::mesh_dim_y << endl;
+    cout << "- mesh_dim_z = " << NoximGlobalParams::mesh_dim_z << endl;
     cout << "- buffer_depth = " << NoximGlobalParams::buffer_depth << endl;
     cout << "- max_packet_size = " << NoximGlobalParams::
 	max_packet_size << endl;
@@ -144,16 +148,27 @@ void showConfig()
 
 void checkInputParameters()
 {
-    if (NoximGlobalParams::mesh_dim_x <= 1) {
-	cerr << "Error: dimx must be greater than 1" << endl;
+    if (NoximGlobalParams::mesh_dim_x <= 1 ||
+	NoximGlobalParams::mesh_dim_x >= MAX_STATIC_DIM)
+    {
+	cerr << "Error: dimx must be greater than 1 and smaller than " << MAX_STATIC_DIM << endl;
 	exit(1);
     }
 
-    if (NoximGlobalParams::mesh_dim_y <= 1) {
-	cerr << "Error: dimy must be greater than 1" << endl;
+    if (NoximGlobalParams::mesh_dim_z < 1 ||
+	NoximGlobalParams::mesh_dim_z >= MAX_STATIC_DIM)
+    {
+	cerr << "Error: dimz must be greater than 0 and smaller than " << MAX_STATIC_DIM << endl;
 	exit(1);
     }
 
+    if (NoximGlobalParams::mesh_dim_y <= 1 ||
+	NoximGlobalParams::mesh_dim_y >= MAX_STATIC_DIM)
+    {
+	cerr << "Error: dimy must be greater than 1 and smaller than " << MAX_STATIC_DIM << endl;
+	exit(1);
+    }
+    
     if (NoximGlobalParams::buffer_depth < 1) {
 	cerr << "Error: buffer must be >= 1" << endl;
 	exit(1);
@@ -252,6 +267,8 @@ void parseCmdLine(int arg_num, char *arg_vet[])
 		NoximGlobalParams::mesh_dim_x = atoi(arg_vet[++i]);
 	    else if (!strcmp(arg_vet[i], "-dimy"))
 		NoximGlobalParams::mesh_dim_y = atoi(arg_vet[++i]);
+	    else if (!strcmp(arg_vet[i], "-dimz"))
+		NoximGlobalParams::mesh_dim_z = atoi(arg_vet[++i]);
 	    else if (!strcmp(arg_vet[i], "-buffer"))
 		NoximGlobalParams::buffer_depth = atoi(arg_vet[++i]);
 	    else if (!strcmp(arg_vet[i], "-size")) {

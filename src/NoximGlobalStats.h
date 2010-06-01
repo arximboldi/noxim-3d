@@ -21,7 +21,19 @@ using namespace std;
 class NoximGlobalStats {
 
   public:
+    template <typename T>
+    struct Matrix : public vector<vector<vector<T> > > {};
 
+    template <typename T>
+    Matrix<T> mkMatrix (size_t xdim, size_t ydim, size_t zdim);
+
+    template <typename T>
+    Matrix<T> mkMatrixGlobalDim () {
+	return mkMatrix<T> (NoximGlobalParams::mesh_dim_x,
+			    NoximGlobalParams::mesh_dim_y,
+			    NoximGlobalParams::mesh_dim_z);
+    }
+    
     NoximGlobalStats(const NoximNoC * _noc);
 
     // Returns the aggragated average delay (cycles)
@@ -42,7 +54,7 @@ class NoximGlobalStats {
     double getMaxDelay(const int src_id, const int dst_id);
 
     // Returns tha matrix of max delay for any node of the network
-     vector < vector < double > > getMaxDelayMtx();
+    Matrix<double> getMaxDelayMtx();
 
     // Returns the aggragated average throughput (flits/cycles)
     double getAverageThroughput();
@@ -61,7 +73,7 @@ class NoximGlobalStats {
     double getThroughput();
 
     // Returns the number of routed flits for each router
-     vector < vector < unsigned long > > getRoutedFlitsMtx();
+     Matrix <unsigned long> getRoutedFlitsMtx();
 
     // Returns the total power
     double getPower();

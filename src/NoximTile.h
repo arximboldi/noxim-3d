@@ -39,6 +39,7 @@ SC_MODULE(NoximTile)
     sc_in < NoximNoP_data > NoP_data_in[DIRECTIONS];
 
     // Signals
+#if 1
     sc_signal <NoximFlit> flit_rx_local;	// The input channels
     sc_signal <bool> req_rx_local;              // The requests associated with the input channels
     sc_signal <bool> ack_rx_local;	        // The outgoing ack signals associated with the input channels
@@ -49,15 +50,16 @@ SC_MODULE(NoximTile)
 
     sc_signal <int> free_slots_local;
     sc_signal <int> free_slots_neighbor_local;
-
+#endif
+    
     // Instances
     NoximRouter *r;		                // Router instance
     NoximProcessingElement *pe;	                // Processing Element instance
 
     // Constructor
 
-    SC_CTOR(NoximTile) {
-
+    SC_CTOR(NoximTile)
+    {
 	// Router pin assignments
 	r = new NoximRouter("Router");
 	r->clock(clock);

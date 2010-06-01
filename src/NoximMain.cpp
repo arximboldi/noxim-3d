@@ -23,6 +23,7 @@ int NoximGlobalParams::trace_mode = DEFAULT_TRACE_MODE;
 char NoximGlobalParams::trace_filename[128] = DEFAULT_TRACE_FILENAME;
 int NoximGlobalParams::mesh_dim_x = DEFAULT_MESH_DIM_X;
 int NoximGlobalParams::mesh_dim_y = DEFAULT_MESH_DIM_Y;
+int NoximGlobalParams::mesh_dim_z = DEFAULT_MESH_DIM_Z;
 int NoximGlobalParams::buffer_depth = DEFAULT_BUFFER_DEPTH;
 int NoximGlobalParams::min_packet_size = DEFAULT_MIN_PACKET_SIZE;
 int NoximGlobalParams::max_packet_size = DEFAULT_MAX_PACKET_SIZE;
@@ -59,9 +60,9 @@ int sc_main(int arg_num, char *arg_vet[])
     sc_signal <bool> reset;
 
     // NoC instance
-    NoximNoC noc ("NoC");
-    noc.clock(clock);
-    noc.reset(reset);
+    NoximNoC* noc = new  NoximNoC ("NoC");
+    noc->clock(clock);
+    noc->reset(reset);
 
     // Trace signals
     sc_trace_file *tf = NULL;
@@ -74,23 +75,23 @@ int sc_main(int arg_num, char *arg_vet[])
 	    for (int j = 0; j < NoximGlobalParams::mesh_dim_y; j++) {
 		char label[30];
 
-		sprintf(label, "req_to_east(%02d)(%02d)", i, j);
-		sc_trace(tf, noc.req_to_east[i][j], label);
-		sprintf(label, "req_to_west(%02d)(%02d)", i, j);
-		sc_trace(tf, noc.req_to_west[i][j], label);
-		sprintf(label, "req_to_south(%02d)(%02d)", i, j);
-		sc_trace(tf, noc.req_to_south[i][j], label);
-		sprintf(label, "req_to_north(%02d)(%02d)", i, j);
-		sc_trace(tf, noc.req_to_north[i][j], label);
+		sprintf(label, "req_to_dir [DIRECTION_EAST](%02d)(%02d)", i, j);
+		sc_trace(tf, noc->req_to_dir [DIRECTION_EAST][i][j], label);
+		sprintf(label, "req_to_dir [DIRECTION_WEST](%02d)(%02d)", i, j);
+		sc_trace(tf, noc->req_to_dir [DIRECTION_WEST][i][j], label);
+		sprintf(label, "req_to_dir [DIRECTION_SOUTH](%02d)(%02d)", i, j);
+		sc_trace(tf, noc->req_to_dir [DIRECTION_SOUTH][i][j], label);
+		sprintf(label, "req_to_dir [DIRECTION_NORTH](%02d)(%02d)", i, j);
+		sc_trace(tf, noc->req_to_dir [DIRECTION_NORTH][i][j], label);
 
-		sprintf(label, "ack_to_east(%02d)(%02d)", i, j);
-		sc_trace(tf, noc.ack_to_east[i][j], label);
-		sprintf(label, "ack_to_west(%02d)(%02d)", i, j);
-		sc_trace(tf, noc.ack_to_west[i][j], label);
-		sprintf(label, "ack_to_south(%02d)(%02d)", i, j);
-		sc_trace(tf, noc.ack_to_south[i][j], label);
-		sprintf(label, "ack_to_north(%02d)(%02d)", i, j);
-		sc_trace(tf, noc.ack_to_north[i][j], label);
+		sprintf(label, "ack_to_dir [DIRECTION_EAST](%02d)(%02d)", i, j);
+		sc_trace(tf, noc->ack_to_dir [DIRECTION_EAST][i][j], label);
+		sprintf(label, "ack_to_dir [DIRECTION_WEST](%02d)(%02d)", i, j);
+		sc_trace(tf, noc->ack_to_dir [DIRECTION_WEST][i][j], label);
+		sprintf(label, "ack_to_dir [DIRECTION_SOUTH](%02d)(%02d)", i, j);
+		sc_trace(tf, noc->ack_to_dir [DIRECTION_SOUTH][i][j], label);
+		sprintf(label, "ack_to_dir [DIRECTION_NORTH](%02d)(%02d)", i, j);
+		sc_trace(tf, noc->ack_to_dir [DIRECTION_NORTH][i][j], label);
 	    }
 	}
     }
@@ -112,7 +113,7 @@ int sc_main(int arg_num, char *arg_vet[])
 	1000 << " cycles executed)" << endl;
 
     // Show statistics
-    NoximGlobalStats gs(&noc);
+    NoximGlobalStats gs(noc);
     gs.showStats(std::cout, NoximGlobalParams::detailed);
 
     if ((NoximGlobalParams::max_volume_to_be_drained > 0) &&
@@ -134,6 +135,5 @@ int sc_main(int arg_num, char *arg_vet[])
 	cout << "\n Effective drained volume: " << drained_volume;
 #endif
     }
-
     return 0;
 }

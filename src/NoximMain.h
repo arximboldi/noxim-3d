@@ -17,12 +17,23 @@
 using namespace std;
 
 // Define the directions as numbers
-#define DIRECTIONS             4
-#define DIRECTION_NORTH        0
-#define DIRECTION_EAST         1
-#define DIRECTION_SOUTH        2
-#define DIRECTION_WEST         3
-#define DIRECTION_LOCAL        4
+// Note, maintain invariant:
+//    \forall x \in directions, DIRECTION_LOCAL >= x
+//    \forall x \in {0, 1, 2}, they are orthogonal and the opposite
+//                             direction same direction is x + 3
+enum directions
+{
+    DIRECTION_SOUTH = 0,
+    DIRECTION_EAST,
+    DIRECTION_UP,
+    DIRECTION_NORTH,
+    DIRECTION_WEST,
+    DIRECTION_DOWN,
+    DIRECTION_LOCAL
+};
+const int DIRECTIONS = DIRECTION_LOCAL;
+inline int opposite (int dir) { return dir < 3 ? dir + 3 : dir - 3; }
+inline int isFwd (int dir) { return dir < 3; }
 
 // Generic not reserved resource
 #define NOT_RESERVED          -2
@@ -70,6 +81,7 @@ using namespace std;
 #define DEFAULT_TRACE_FILENAME                      ""
 #define DEFAULT_MESH_DIM_X                           4
 #define DEFAULT_MESH_DIM_Y                           4
+#define DEFAULT_MESH_DIM_Z                           1
 #define DEFAULT_BUFFER_DEPTH                         4
 #define DEFAULT_MAX_PACKET_SIZE                     10
 #define DEFAULT_MIN_PACKET_SIZE                      2
@@ -97,6 +109,7 @@ struct NoximGlobalParams {
     static char trace_filename[128];
     static int mesh_dim_x;
     static int mesh_dim_y;
+    static int mesh_dim_z;
     static int buffer_depth;
     static int min_packet_size;
     static int max_packet_size;
@@ -118,13 +131,14 @@ struct NoximGlobalParams {
 
 // NoximCoord -- XY coordinates type of the Tile inside the Mesh
 class NoximCoord {
-  public:
+public:
     int x;			// X coordinate
     int y;			// Y coordinate
-
+    int z;                      // Z coordinate
     inline bool operator ==(const NoximCoord & coord) const {
-	return (coord.x == x && coord.y == y);
-}};
+	return (coord.x == x && coord.y == y && coord.z == z);
+    }
+};
 
 // NoximFlitType -- Flit type enumeration
 enum NoximFlitType {
@@ -137,7 +151,7 @@ struct NoximPayload {
 
     inline bool operator ==(const NoximPayload & payload) const {
 	return (payload.data == data);
-}};
+    }};
 
 // NoximPacket -- Packet definition
 struct NoximPacket {
@@ -212,7 +226,7 @@ struct NoximFlit {
 		&& flit.sequence_no == sequence_no
 		&& flit.payload == payload && flit.timestamp == timestamp
 		&& flit.hop_no == hop_no);
-}};
+    }};
 
 // Output overloading
 
@@ -320,21 +334,32 @@ inline NoximCoord id2Coord(int id)
     NoximCoord coord;
 
     coord.x = id % NoximGlobalParams::mesh_dim_x;
-    coord.y = id / NoximGlobalParams::mesh_dim_x;
+    coord.y = (id / NoximGlobalParams::mesh_dim_x) % NoximGlobalParams::mesh_dim_y;
+    coord.z = id / (NoximGlobalParams::mesh_dim_x * NoximGlobalParams::mesh_dim_y);
 
     assert(coord.x < NoximGlobalParams::mesh_dim_x);
     assert(coord.y < NoximGlobalParams::mesh_dim_y);
-
+    assert(coord.z < NoximGlobalParams::mesh_dim_z);
+    
     return coord;
 }
 
 inline int coord2Id(const NoximCoord & coord)
 {
-    int id = (coord.y * NoximGlobalParams::mesh_dim_x) + coord.x;
+    int id =
+	coord.z * NoximGlobalParams::mesh_dim_x * NoximGlobalParams::mesh_dim_y +
+	coord.y * NoximGlobalParams::mesh_dim_x +
+	coord.x;
 
-    assert(id < NoximGlobalParams::mesh_dim_x * NoximGlobalParams::mesh_dim_y);
+    assert(id < NoximGlobalParams::mesh_dim_x * NoximGlobalParams::mesh_dim_y * NoximGlobalParams::mesh_dim_z);
 
     return id;
+}
+
+inline int coord2Id(int x, int y, int z)
+{
+    NoximCoord c = {x, y, z};
+    return coord2Id(c);
 }
 
 #endif
