@@ -332,10 +332,14 @@ inline void sc_trace(sc_trace_file * &tf, const NoximChannelStatus & bs, string 
 inline NoximCoord id2Coord(int id)
 {
     NoximCoord coord;
-
-    coord.x = id % NoximGlobalParams::mesh_dim_x;
-    coord.y = (id / NoximGlobalParams::mesh_dim_x) % NoximGlobalParams::mesh_dim_y;
-    coord.z = id / (NoximGlobalParams::mesh_dim_x * NoximGlobalParams::mesh_dim_y);
+    const size_t
+	dimx = NoximGlobalParams::mesh_dim_x,
+	dimy = NoximGlobalParams::mesh_dim_y,
+	dimz = NoximGlobalParams::mesh_dim_z;
+    
+    coord.z = (id % (dimz * dimy)) % dimz;
+    coord.y = (id % (dimz * dimy)) / dimz;
+    coord.x = id / (dimz * dimy);
 
     assert(coord.x < NoximGlobalParams::mesh_dim_x);
     assert(coord.y < NoximGlobalParams::mesh_dim_y);
@@ -347,9 +351,9 @@ inline NoximCoord id2Coord(int id)
 inline int coord2Id(const NoximCoord & coord)
 {
     int id =
-	coord.z * NoximGlobalParams::mesh_dim_x * NoximGlobalParams::mesh_dim_y +
-	coord.y * NoximGlobalParams::mesh_dim_x +
-	coord.x;
+	coord.x * NoximGlobalParams::mesh_dim_z * NoximGlobalParams::mesh_dim_y +
+	coord.y * NoximGlobalParams::mesh_dim_z +
+	coord.z;
 
     assert(id < NoximGlobalParams::mesh_dim_x * NoximGlobalParams::mesh_dim_y * NoximGlobalParams::mesh_dim_z);
 

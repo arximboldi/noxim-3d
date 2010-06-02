@@ -38,7 +38,7 @@ void NoximNoC::buildMesh()
 		t[i][j][k] = new NoximTile(tile_name);
 
 		int tile_id = coord2Id (i, j, k);
-		
+		cout << tile_id << endl;
 		// Tell to the router its coordinates
 		t[i][j][k]->r->configure(tile_id,
 					 NoximGlobalParams::stats_warm_up_time,
