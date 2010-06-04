@@ -15,7 +15,7 @@ void NoximNoC::buildMesh()
     // Check for routing table availability
     if (NoximGlobalParams::routing_algorithm == ROUTING_TABLE_BASED)
 	assert(grtable.load(NoximGlobalParams::routing_table_filename));
-
+    
     // Check for traffic table availability
     if (NoximGlobalParams::traffic_distribution == TRAFFIC_TABLE_BASED)
 	assert(gttable.load(NoximGlobalParams::traffic_table_filename));
@@ -33,52 +33,67 @@ void NoximNoC::buildMesh()
 	for (int j = 0; j < NoximGlobalParams::mesh_dim_y; j++) {
 	    for (int k = 0; k < NoximGlobalParams::mesh_dim_z; ++k) {
 		// Create the single Tile with a proper name
+		int tile_id = coord2Id (i, j, k);
 		char tile_name [32];
 		sprintf(tile_name, "Tile[%02d][%02d][%02d]", i, j, k);
-		t[i][j][k] = new NoximTile(tile_name);
+		NoximTile* tile = t[i][j][k] = new NoximTile(tile_name);
 
-		int tile_id = coord2Id (i, j, k);
-		cout << tile_id << endl;
+		
 		// Tell to the router its coordinates
-		t[i][j][k]->r->configure(tile_id,
-					 NoximGlobalParams::stats_warm_up_time,
-					 NoximGlobalParams::buffer_depth,
-					 grtable);
+		tile->r->configure(tile_id,
+				   NoximGlobalParams::stats_warm_up_time,
+				   NoximGlobalParams::buffer_depth,
+				   grtable);
 
 		// Tell to the PE its coordinates
-		t[i][j][k]->pe->local_id = tile_id;
-		t[i][j][k]->pe->traffic_table = &gttable;	// Needed to choose destination
-		t[i][j][k]->pe->never_transmit = (gttable.occurrencesAsSource(t[i][j][k]->pe->local_id) == 0);
+		tile->pe->local_id = tile_id;
+		tile->pe->traffic_table = &gttable;	// Needed to choose destination
+		tile->pe->never_transmit = (gttable.occurrencesAsSource(tile->pe->local_id) == 0);
 
 		// Map clock and reset
-		t[i][j][k]->clock(clock);
-		t[i][j][k]->reset(reset);
+		tile->clock(clock);
+		tile->reset(reset);
 
 		// Map Rx signals
 		for (int dir = 0; dir < DIRECTIONS; ++ dir)
 		{
-#if 1
-		    int opd = opposite (dir);
-		    int si = dir == DIRECTION_EAST  ? i + 1 : i,
-			sj = dir == DIRECTION_SOUTH ? j + 1 : j,
-			sk = dir == DIRECTION_UP    ? k + 1 : k;
+		    if (dir == DIRECTION_DOWN && !NoximGlobalParams::has_tsv [tile_id])
+		    {
+			/* Cut connection cuz no TSV exist. */
+			tile->req_rx [dir] (*new sc_signal <bool>);
+			tile->ack_rx [dir] (*new sc_signal <bool>);
+			tile->flit_rx [dir] (*new sc_signal <NoximFlit>);
+			tile->req_tx [dir] (*new sc_signal <bool>);
+			tile->ack_tx [dir] (*new sc_signal <bool>);
+			tile->flit_tx [dir] (*new sc_signal <NoximFlit>);
+			tile->free_slots [dir] (*new sc_signal <int>);
+			tile->free_slots_neighbor [dir] (*new sc_signal <int>);
+			tile->NoP_data_in [dir] (*new sc_signal <NoximNoP_data>);
+			tile->NoP_data_out [dir] (*new sc_signal <NoximNoP_data>);
+		    }
+		    else
+		    {
+			int opd = opposite (dir);
+			int si = dir == DIRECTION_EAST  ? i + 1 : i,
+			    sj = dir == DIRECTION_SOUTH ? j + 1 : j,
+			    sk = dir == DIRECTION_UP    ? k + 1 : k;
 		    
-		    t[i][j][k]->req_rx  [dir] (req_to_dir  [opd][si][sj][sk]);
-		    t[i][j][k]->flit_rx [dir] (flit_to_dir [opd][si][sj][sk]);
-		    t[i][j][k]->ack_rx  [dir] (ack_to_dir  [dir][si][sj][sk]);
+			tile->req_rx  [dir] (req_to_dir  [opd][si][sj][sk]);
+			tile->flit_rx [dir] (flit_to_dir [opd][si][sj][sk]);
+			tile->ack_rx  [dir] (ack_to_dir  [dir][si][sj][sk]);
 
-		    t[i][j][k]->req_tx  [dir] (req_to_dir  [dir][si][sj][sk]);
-		    t[i][j][k]->flit_tx [dir] (flit_to_dir [dir][si][sj][sk]);
-		    t[i][j][k]->ack_tx  [dir] (ack_to_dir  [opd][si][sj][sk]);
+			tile->req_tx  [dir] (req_to_dir  [dir][si][sj][sk]);
+			tile->flit_tx [dir] (flit_to_dir [dir][si][sj][sk]);
+			tile->ack_tx  [dir] (ack_to_dir  [opd][si][sj][sk]);
 
-		    // Map buffer level signals (analogy with req_tx/rx port mapping)
-		    t[i][j][k]->free_slots [dir] (free_slots_to_dir [dir][si][sj][sk]);
-		    t[i][j][k]->free_slots_neighbor [dir] (free_slots_to_dir [opd][si][sj][sk]);
+			// Map buffer level signals (analogy with req_tx/rx port mapping)
+			tile->free_slots [dir] (free_slots_to_dir [dir][si][sj][sk]);
+			tile->free_slots_neighbor [dir] (free_slots_to_dir [opd][si][sj][sk]);
 
-		    // NoP 
-		    t[i][j][k]->NoP_data_out[dir] (NoP_data_to_dir [dir][si][sj][sk]);
-		    t[i][j][k]->NoP_data_in[dir] (NoP_data_to_dir [opd][si][sj][sk]);
-#endif
+			// NoP 
+			tile->NoP_data_out[dir] (NoP_data_to_dir [dir][si][sj][sk]);
+			tile->NoP_data_in[dir] (NoP_data_to_dir [opd][si][sj][sk]);
+		    }
 		}
 	    }
 	}

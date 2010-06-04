@@ -10,6 +10,59 @@
 
 #include "NoximRouter.h"
 
+NoximCoord NoximRouter::nearestTSVStatic (NoximCoord other)
+{
+    NoximCoord me = id2Coord (local_id);
+    bool down = other.z < me.z;
+    NoximCoord tsv = {0, 0, me.z + (down ? 0 : 1)};
+    NoximCoord best_tsv = {-1, -1, -1};
+    size_t best = ~0;
+    
+    if (down)
+	assert (me.z > 0);
+    else
+	assert (me.z+1 < NoximGlobalParams::mesh_dim_z);
+
+    // TODO: Optimize.
+    for (tsv.x = 0; tsv.x < NoximGlobalParams::mesh_dim_x; ++tsv.x)
+	for (tsv.y = 0; tsv.y < NoximGlobalParams::mesh_dim_y; ++tsv.y) {
+	    size_t dist = gridDist (me, tsv);
+	    if (NoximGlobalParams::has_tsv [coord2Id (tsv)] && dist < best) {
+		best_tsv = tsv;
+		best = dist;
+	    }
+	}
+    assert (best_tsv.x >= 0);
+    return best_tsv;
+}
+
+NoximCoord NoximRouter::nearestTSVDynamic (NoximCoord other)
+{
+    NoximCoord me = id2Coord (local_id);
+    bool down = other.z < me.z;
+    NoximCoord tsv = {0, 0, me.z + (down ? 0 : 1)};
+    NoximCoord best_tsv = {-1, -1, -1};
+    size_t best = ~0;
+    
+    if (down)
+	assert (me.z > 0);
+    else
+	assert (me.z+1 < NoximGlobalParams::mesh_dim_z);
+
+    // TODO: Optimize.
+    for (tsv.x = 0; tsv.x < NoximGlobalParams::mesh_dim_x; ++tsv.x)
+	for (tsv.y = 0; tsv.y < NoximGlobalParams::mesh_dim_y; ++tsv.y) {
+	    // NOTE: This is actually true only if 
+	    size_t dist = gridDist (me, tsv) + gridDist (other, tsv);
+	    if (NoximGlobalParams::has_tsv [coord2Id (tsv)] && dist < best) {
+		best_tsv = tsv;
+		best = dist;
+	    }
+	}
+    assert (best_tsv.x >= 0);
+    return best_tsv;    
+}
+
 void NoximRouter::rxProcess()
 {
     if (reset.read()) {
@@ -40,7 +93,7 @@ void NoximRouter::rxProcess()
 		if (NoximGlobalParams::verbose_mode > VERBOSE_OFF) {
 		    cout << sc_time_stamp().to_double() /
 			1000 << ": Router[" << local_id << "], Input[" << i
-			<< "], Received flit: " << received_flit << endl;
+			 << "], Received flit: " << received_flit << endl;
 		}
 		// Store the incoming flit in the circular buffer
 		buffer[i].Push(received_flit);
@@ -87,10 +140,10 @@ void NoximRouter::txProcess()
 			reservation_table.reserve(i, o);
 			if (NoximGlobalParams::verbose_mode > VERBOSE_OFF) {
 			    cout << sc_time_stamp().to_double() / 1000
-				<< ": Router[" << local_id
-				<< "], Input[" << i << "] (" << buffer[i].
+				 << ": Router[" << local_id
+				 << "], Input[" << i << "] (" << buffer[i].
 				Size() << " flits)" << ", reserved Output["
-				<< o << "], flit: " << flit << endl;
+				 << o << "], flit: " << flit << endl;
 			}
 		    }
 		}
@@ -108,10 +161,10 @@ void NoximRouter::txProcess()
 		    if (current_level_tx[o] == ack_tx[o].read()) {
 			if (NoximGlobalParams::verbose_mode > VERBOSE_OFF) {
 			    cout << sc_time_stamp().to_double() / 1000
-				<< ": Router[" << local_id
-				<< "], Input[" << i <<
+				 << ": Router[" << local_id
+				 << "], Input[" << i <<
 				"] forward to Output[" << o << "], flit: "
-				<< flit << endl;
+				 << flit << endl;
 			}
 
 			flit_tx[o].write(flit);
@@ -197,10 +250,17 @@ vector <
     NoximCoord src_coord = id2Coord(route_data.src_id);
     NoximCoord dst_coord = id2Coord(route_data.dst_id);
     int dir_in = route_data.dir_in;
-
+#if 0
+    cout << route_data.current_id << ", "
+	 << route_data.src_id << ", "
+	 << route_data.dst_id << endl;
+    cout << position << ", "
+	 << src_coord << ","
+	 << dst_coord << endl;
+#endif
     switch (NoximGlobalParams::routing_algorithm) {
     case ROUTING_XY:
-	return routingXY(position, dst_coord);
+	return routingZXY(position, dst_coord);
 
     case ROUTING_WEST_FIRST:
 	return routingWestFirst(position, dst_coord);
@@ -423,20 +483,42 @@ int NoximRouter::selectionFunction(const vector < int >&directions,
     return 0;
 }
 
-vector < int >NoximRouter::routingXY(const NoximCoord & current,
-				     const NoximCoord & destination)
+vector<int> NoximRouter::routingZXY (NoximCoord current,
+				     NoximCoord destination)
 {
-    vector < int >directions;
-
-    if (destination.x > current.x)
-	directions.push_back(DIRECTION_EAST);
-    else if (destination.x < current.x)
-	directions.push_back(DIRECTION_WEST);
-    else if (destination.y > current.y)
-	directions.push_back(DIRECTION_SOUTH);
-    else
-	directions.push_back(DIRECTION_NORTH);
-
+    vector<int> directions;
+    
+    if (destination.z > current.z &&
+	NoximGlobalParams::has_tsv [coord2Id (current) + 1])
+	// The +1 is a hack on representation of coord2Id
+	directions.push_back(DIRECTION_UP);
+    else if (destination.z < current.z &&
+	     NoximGlobalParams::has_tsv [coord2Id (current)])
+	directions.push_back (DIRECTION_DOWN);
+    else {
+	if (destination.z != current.z) {
+	    // Find a TSV
+	    switch (NoximGlobalParams::tsv_type) {
+	    case TSV_STATIC:
+		destination = nearestTSVStatic (destination);
+		break;
+	    case TSV_DYNAMIC:
+		destination = nearestTSVDynamic (destination);
+		break;
+	    default:
+		assert (false);
+	    }
+	}
+	if (destination.x > current.x)
+	    directions.push_back(DIRECTION_EAST);
+	else if (destination.x < current.x)
+	    directions.push_back(DIRECTION_WEST);
+	else if (destination.y > current.y)
+	    directions.push_back(DIRECTION_SOUTH);
+	else if (destination.y < current.y)
+	    directions.push_back(DIRECTION_NORTH);
+    }
+    
     return directions;
 }
 
@@ -446,7 +528,7 @@ vector < int >NoximRouter::routingWestFirst(const NoximCoord & current,
     vector < int >directions;
 
     if (destination.x <= current.x || destination.y == current.y)
-	return routingXY(current, destination);
+	return routingZXY(current, destination);
 
     if (destination.y < current.y) {
 	directions.push_back(DIRECTION_NORTH);
@@ -465,7 +547,7 @@ vector < int >NoximRouter::routingNorthLast(const NoximCoord & current,
     vector < int >directions;
 
     if (destination.x == current.x || destination.y <= current.y)
-	return routingXY(current, destination);
+	return routingZXY(current, destination);
 
     if (destination.x < current.x) {
 	directions.push_back(DIRECTION_SOUTH);
@@ -486,7 +568,7 @@ vector < int >NoximRouter::routingNegativeFirst(const NoximCoord & current,
 
     if ((destination.x <= current.x && destination.y <= current.y) ||
 	(destination.x >= current.x && destination.y >= current.y))
-	return routingXY(current, destination);
+	return routingZXY(current, destination);
 
     if (destination.x > current.x && destination.y < current.y) {
 	directions.push_back(DIRECTION_NORTH);
@@ -579,7 +661,7 @@ vector < int >NoximRouter::routingFullyAdaptive(const NoximCoord & current,
     vector < int >directions;
 
     if (destination.x == current.x || destination.y == current.y)
-	return routingXY(current, destination);
+	return routingZXY(current, destination);
 
     if (destination.x > current.x && destination.y < current.y) {
 	directions.push_back(DIRECTION_NORTH);
@@ -617,13 +699,13 @@ vector < int >NoximRouter::routingTableBased(const int dir_in,
 
     //-----
     /*
-       vector<int> aov = admissibleOutputsSet2Vector(ao);
-       cout << "dir: " << dir_in << ", (" << current.x << "," << current.y << ") --> "
-       << "(" << destination.x << "," << destination.y << "), outputs: ";
-       for (int i=0; i<aov.size(); i++)
-       cout << aov[i] << ", ";
-       cout << endl;
-     */
+      vector<int> aov = admissibleOutputsSet2Vector(ao);
+      cout << "dir: " << dir_in << ", (" << current.x << "," << current.y << ") --> "
+      << "(" << destination.x << "," << destination.y << "), outputs: ";
+      for (int i=0; i<aov.size(); i++)
+      cout << aov[i] << ", ";
+      cout << endl;
+    */
     //-----
 
     return admissibleOutputsSet2Vector(ao);

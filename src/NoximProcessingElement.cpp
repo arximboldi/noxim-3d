@@ -171,8 +171,9 @@ NoximPacket NoximProcessingElement::trafficRandom()
     //cout << "\n " << sc_time_stamp().to_double()/1000 << " PE " << local_id << " rnd = " << rnd << endl;
 
     int max_id =
-	(NoximGlobalParams::mesh_dim_x * NoximGlobalParams::mesh_dim_y) -
-	1;
+	(NoximGlobalParams::mesh_dim_x *
+	 NoximGlobalParams::mesh_dim_y *
+	 NoximGlobalParams::mesh_dim_z) - 1;
 
     // Random destination distribution
     do {

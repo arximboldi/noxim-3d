@@ -8,6 +8,8 @@
  * This file contains the implementation of the command line parser
  */
 
+#include <iomanip>
+#include <iterator>
 #include "NoximCmdLineParser.h"
 
 void showHelp(char selfname[])
@@ -22,6 +24,9 @@ void showHelp(char selfname[])
     cout <<
 	"\t-trace FILENAME\tTrace signals to a VCD file named 'FILENAME.vcd' (default off)"
 	<< endl;
+    cout <<
+	"\t-ids X Y Z\tShow a graphic layout of ids in a X Y Z mesh."
+	 << endl;
     cout <<
 	"\t-dimx N\t\tSet the mesh X dimension to the specified integer value (default "
 	<< DEFAULT_MESH_DIM_X << ")" << endl;
@@ -92,6 +97,13 @@ void showHelp(char selfname[])
 	"\t-hs ID P\tAdd node ID to hotspot nodes, with percentage P (0..1) (Only for 'random' traffic)"
 	<< endl;
     cout <<
+	"\t-tsv NODES\tAdd nodes to nodes with a TSV connecting it to its lower node. (default all connected.)"
+	<< endl;
+    cout <<
+	"\t-tsvtype TYPE\tChoose nearest TSV selection algorithm. (default: static)" << endl <<
+	"\t\tstatic\tChoose nearest node with TSV to sender." << endl <<
+	"\t\tdynamic\tChoose nearest node with TSV to sender and receiver" << endl;
+    cout <<
 	"\t-warmup N\tStart to collect statistics after N cycles (default "
 	<< DEFAULT_STATS_WARM_UP_TIME << ")" << endl;
     cout <<
@@ -144,6 +156,38 @@ void showConfig()
 	stats_warm_up_time << endl;
     cout << "- rnd_generator_seed = " << NoximGlobalParams::
 	rnd_generator_seed << endl;
+    cout << "- tsv = "; 
+    copy (NoximGlobalParams::has_tsv.begin (),
+	  NoximGlobalParams::has_tsv.end (),
+	  ostream_iterator<bool> (cout, " "));
+    cout << endl;
+    cout << "- tsvtype = " << NoximGlobalParams::tsv_type << endl;
+    
+}
+
+void showIds (size_t X, size_t Y, size_t Z)
+{
+    NoximGlobalParams::mesh_dim_z = Z;
+    NoximGlobalParams::mesh_dim_y = Y;
+    NoximGlobalParams::mesh_dim_x = X;
+
+    for (int z = 0; z < Z; ++z) {
+	cout << "\nLayer: " << z << endl;
+	cout << "     |";
+	for (int x = 0; x < X; ++x)
+	    cout << setw (5) << x;
+	cout << endl;
+	for (int x = 0; x < X+1; ++x)
+	    cout << "-----";
+	cout << "---";
+	cout << endl;
+	for (int y = 0; y < Y; ++y) {
+	    cout << setw (4) <<  y << " |";
+	    for (int x = 0; x < X; ++x)
+		cout << setw (5) << coord2Id (x, y, z);
+	    cout << endl;
+	}
+    }
 }
 
 void checkInputParameters()
@@ -210,6 +254,11 @@ void checkInputParameters()
 	exit(1);
     }
 
+    if (NoximGlobalParams::tsv_type == INVALID_TSV) {
+	cerr << "Error: invalid tsv type" << endl;
+	exit(1);
+    }
+    
     for (unsigned int i = 0; i < NoximGlobalParams::hotspots.size(); i++) {
 	if (NoximGlobalParams::hotspots[i].first >=
 	    NoximGlobalParams::mesh_dim_x *
@@ -249,6 +298,8 @@ void checkInputParameters()
 
 void parseCmdLine(int arg_num, char *arg_vet[])
 {
+    vector<int>& tsvs = NoximGlobalParams::tsv_nodes;
+    
     if (arg_num == 1)
 	cout <<
 	    "Running with default parameters (use '-help' option to see how to override them)"
@@ -257,6 +308,15 @@ void parseCmdLine(int arg_num, char *arg_vet[])
 	for (int i = 1; i < arg_num; i++) {
 	    if (!strcmp(arg_vet[i], "-help")) {
 		showHelp(arg_vet[0]);
+		exit(0);
+	    } if (!strcmp(arg_vet[i], "-ids")) {
+		if (i + 3 < arg_num) {
+		    int x = atoi (arg_vet [++i]);
+		    int y = atoi (arg_vet [++i]);
+		    int z = atoi (arg_vet [++i]);
+		    showIds(x, y, z);
+		} else
+		    cerr << "Not enough arguments." << endl;
 		exit(0);
 	    } else if (!strcmp(arg_vet[i], "-verbose"))
 		NoximGlobalParams::verbose_mode = atoi(arg_vet[++i]);
@@ -382,6 +442,22 @@ void parseCmdLine(int arg_num, char *arg_vet[])
 		    atoi(arg_vet[++i]);
 	    else if (!strcmp(arg_vet[i], "-sim"))
 		NoximGlobalParams::simulation_time = atoi(arg_vet[++i]);
+	    else if (!strcmp(arg_vet[i], "-tsv")) {
+		while (++i < arg_num && arg_vet[i][0] != '-') {
+		    tsvs.push_back (atoi (arg_vet[i]));
+		}
+		if (i < arg_num) --i;
+	    }
+	    else if (!strcmp(arg_vet[i], "-tsvtype") && i+1 < arg_num)
+	    {
+		char *tsv = arg_vet[++i];
+		if (!strcmp(tsv, "static"))
+		    NoximGlobalParams::tsv_type = TSV_STATIC;
+		else if (!strcmp(tsv, "dynamic"))
+		    NoximGlobalParams::tsv_type = TSV_DYNAMIC;
+		else
+		    NoximGlobalParams::tsv_type = INVALID_TSV;
+	    }
 	    else {
 		cerr << "Error: Invalid option: " << arg_vet[i] << endl;
 		exit(1);
@@ -391,6 +467,24 @@ void parseCmdLine(int arg_num, char *arg_vet[])
 
     checkInputParameters();
 
+    size_t num_nodes =
+	NoximGlobalParams::mesh_dim_x *
+	NoximGlobalParams::mesh_dim_y *
+	NoximGlobalParams::mesh_dim_z; 
+    vector<bool>& has_tsv = NoximGlobalParams::has_tsv;
+    if (tsvs.size ()) {
+	has_tsv.resize (num_nodes, false);
+	for (size_t i = 0; i < tsvs.size (); ++i) {
+	    if (tsvs [i] < num_nodes) {
+		has_tsv [tsvs [i]] = true;
+	    }
+	}
+    } else {
+	has_tsv.resize (num_nodes, true);
+	for (int i = 0; i < num_nodes; ++i)
+	    tsvs.push_back (i);
+    }
+    
     // Show configuration
     if (NoximGlobalParams::verbose_mode > VERBOSE_OFF)
 	showConfig();

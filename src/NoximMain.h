@@ -52,6 +52,13 @@ inline int isFwd (int dir) { return dir < 3; }
 #define ROUTING_TABLE_BASED    9
 #define INVALID_ROUTING       -1
 
+enum NoximTsvType
+{
+    INVALID_TSV = -1,
+    TSV_DYNAMIC,
+    TSV_STATIC
+};
+
 // Selection strategies
 #define SEL_RANDOM             0
 #define SEL_BUFFER_LEVEL       1
@@ -98,6 +105,7 @@ inline int isFwd (int dir) { return dir < 3; }
 #define DEFAULT_DETAILED                         false
 #define DEFAULT_DYAD_THRESHOLD                     0.6
 #define DEFAULT_MAX_VOLUME_TO_BE_DRAINED             0
+#define DEFAULT_TSV_TYPE                    TSV_STATIC
 
 // TODO by Fafa - this MUST be removed!!! Use only STL vectors instead!!!
 #define MAX_STATIC_DIM 20
@@ -127,6 +135,9 @@ struct NoximGlobalParams {
     static vector <pair <int, double> > hotspots;
     static float dyad_threshold;
     static unsigned int max_volume_to_be_drained;
+    static vector <bool> has_tsv;
+    static vector <int>  tsv_nodes;
+    static NoximTsvType  tsv_type;
 };
 
 // NoximCoord -- XY coordinates type of the Tile inside the Mesh
@@ -139,6 +150,10 @@ public:
 	return (coord.x == x && coord.y == y && coord.z == z);
     }
 };
+
+inline size_t gridDist (NoximCoord a, NoximCoord b) {
+    return abs (a.x - b.x) + abs (a.y - b.y) + abs (a.z - b.z); 
+}
 
 // NoximFlitType -- Flit type enumeration
 enum NoximFlitType {
@@ -300,7 +315,7 @@ inline ostream & operator <<(ostream & os, const NoximNoP_data & NoP_data)
 
 inline ostream & operator <<(ostream & os, const NoximCoord & coord)
 {
-    os << "(" << coord.x << "," << coord.y << ")";
+    os << "(" << coord.x << "," << coord.y << "," << coord.z << ")";
 
     return os;
 }

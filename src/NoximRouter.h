@@ -60,7 +60,7 @@ SC_MODULE(NoximRouter)
     NoximReservationTable reservation_table;	// Switch reservation table
     int start_from_port;	                // Port from which to start the reservation cycle
     unsigned long routed_flits;
-
+    
     // Functions
 
     void rxProcess();		// The receiving process
@@ -91,7 +91,9 @@ SC_MODULE(NoximRouter)
     }
 
   private:
-
+    NoximCoord nearestTSVStatic (NoximCoord);
+    NoximCoord nearestTSVDynamic (NoximCoord);
+    
     // performs actual routing + selection
     int route(const NoximRouteData & route_data);
 
@@ -107,8 +109,8 @@ SC_MODULE(NoximRouter)
 		     const NoximRouteData & route_data);
 
     // routing functions
-    vector < int >routingXY(const NoximCoord & current,
-			    const NoximCoord & destination);
+    vector < int >routingZXY(NoximCoord current,
+			     NoximCoord destination);
     vector < int >routingWestFirst(const NoximCoord & current,
 				   const NoximCoord & destination);
     vector < int >routingNorthLast(const NoximCoord & current,
