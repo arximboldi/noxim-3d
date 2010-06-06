@@ -100,7 +100,7 @@ void showHelp(char selfname[])
 	"\t-tsv NODES\tAdd nodes to nodes with a TSV connecting it to its lower node. (default all connected.)"
 	<< endl;
     cout <<
-	"\t-tsvtype TYPE\tChoose nearest TSV selection algorithm. (default: static)" << endl <<
+	"\t-tsvchoice TYPE\tChoose nearest TSV selection algorithm. (default: static)" << endl <<
 	"\t\tstatic\tChoose nearest node with TSV to sender." << endl <<
 	"\t\tdynamic\tChoose nearest node with TSV to sender and receiver" << endl;
     cout <<
@@ -448,7 +448,7 @@ void parseCmdLine(int arg_num, char *arg_vet[])
 		}
 		if (i < arg_num) --i;
 	    }
-	    else if (!strcmp(arg_vet[i], "-tsvtype") && i+1 < arg_num)
+	    else if (!strcmp(arg_vet[i], "-tsvchoice") && i+1 < arg_num)
 	    {
 		char *tsv = arg_vet[++i];
 		if (!strcmp(tsv, "static"))

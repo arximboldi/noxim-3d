@@ -32,7 +32,6 @@ SC_MODULE(NoximNoC)
 
     // NoP
     sc_signal <NoximNoP_data> NoP_data_to_dir [DIRECTIONS][MAX_STATIC_DIM][MAX_STATIC_DIM][MAX_STATIC_DIM];
-    
 
     // Matrix of tiles
     NoximTile* t [MAX_STATIC_DIM][MAX_STATIC_DIM][MAX_STATIC_DIM];
