@@ -76,25 +76,27 @@ int sc_main(int arg_num, char *arg_vet[])
 
 	for (int i = 0; i < NoximGlobalParams::mesh_dim_x; i++) {
 	    for (int j = 0; j < NoximGlobalParams::mesh_dim_y; j++) {
-		char label[30];
+		for (int k = 0; k < NoximGlobalParams::mesh_dim_z; k++) {
+		    char label[128];
 
-		sprintf(label, "req_to_dir [DIRECTION_EAST](%02d)(%02d)", i, j);
-		sc_trace(tf, noc->req_to_dir [DIRECTION_EAST][i][j], label);
-		sprintf(label, "req_to_dir [DIRECTION_WEST](%02d)(%02d)", i, j);
-		sc_trace(tf, noc->req_to_dir [DIRECTION_WEST][i][j], label);
-		sprintf(label, "req_to_dir [DIRECTION_SOUTH](%02d)(%02d)", i, j);
-		sc_trace(tf, noc->req_to_dir [DIRECTION_SOUTH][i][j], label);
-		sprintf(label, "req_to_dir [DIRECTION_NORTH](%02d)(%02d)", i, j);
-		sc_trace(tf, noc->req_to_dir [DIRECTION_NORTH][i][j], label);
+		    sprintf(label, "req_to_dir[DIRECTION_EAST](%02d)(%02d)(%02d)", i, j, k);
+		    sc_trace(tf, noc->req_to_dir [DIRECTION_EAST][i][j][k], label);
+		    sprintf(label, "req_to_dir[DIRECTION_WEST](%02d)(%02d)(%02d)", i, j, k);
+		    sc_trace(tf, noc->req_to_dir [DIRECTION_WEST][i][j][k], label);
+		    sprintf(label, "req_to_dir[DIRECTION_SOUTH](%02d)(%02d)(%02d)", i, j, k);
+		    sc_trace(tf, noc->req_to_dir [DIRECTION_SOUTH][i][j][k], label);
+		    sprintf(label, "req_to_dir[DIRECTION_NORTH](%02d)(%02d)(%02d)", i, j, k);
+		    sc_trace(tf, noc->req_to_dir[DIRECTION_NORTH][i][j][k], label);
 
-		sprintf(label, "ack_to_dir [DIRECTION_EAST](%02d)(%02d)", i, j);
-		sc_trace(tf, noc->ack_to_dir [DIRECTION_EAST][i][j], label);
-		sprintf(label, "ack_to_dir [DIRECTION_WEST](%02d)(%02d)", i, j);
-		sc_trace(tf, noc->ack_to_dir [DIRECTION_WEST][i][j], label);
-		sprintf(label, "ack_to_dir [DIRECTION_SOUTH](%02d)(%02d)", i, j);
-		sc_trace(tf, noc->ack_to_dir [DIRECTION_SOUTH][i][j], label);
-		sprintf(label, "ack_to_dir [DIRECTION_NORTH](%02d)(%02d)", i, j);
-		sc_trace(tf, noc->ack_to_dir [DIRECTION_NORTH][i][j], label);
+		    sprintf(label, "ack_to_dir[DIRECTION_EAST](%02d)(%02d)(%02d)", i, j, k);
+		    sc_trace(tf, noc->ack_to_dir [DIRECTION_EAST][i][j][k], label);
+		    sprintf(label, "ack_to_dir[DIRECTION_WEST](%02d)(%02d)(%02d)", i, j, k);
+		    sc_trace(tf, noc->ack_to_dir [DIRECTION_WEST][i][j][k], label);
+		    sprintf(label, "ack_to_dir[DIRECTION_SOUTH](%02d)(%02d)(%02d)", i, j, k);
+		    sc_trace(tf, noc->ack_to_dir [DIRECTION_SOUTH][i][j][k], label);
+		    sprintf(label, "ack_to_dir[DIRECTION_NORTH](%02d)(%02d)(%02d)", i, j, k);
+		    sc_trace(tf, noc->ack_to_dir [DIRECTION_NORTH][i][j][k], label);
+		}
 	    }
 	}
     }
@@ -124,7 +126,7 @@ int sc_main(int arg_num, char *arg_vet[])
 	 NoximGlobalParams::simulation_time)) {
 	cout <<
 	    "\nWARNING! the number of flits specified with -volume option"
-	    << endl;
+	     << endl;
 	cout << "has not been reached. ( " << drained_volume <<
 	    " instead of " << NoximGlobalParams::
 	    max_volume_to_be_drained << " )" << endl;
