@@ -109,7 +109,7 @@ SC_MODULE(NoximRouter)
 		     const NoximRouteData & route_data);
 
     // routing functions
-    vector < int >routingZXY(NoximCoord current,
+    vector < int >routingXY(NoximCoord current,
 			     NoximCoord destination);
     vector < int >routingWestFirst(const NoximCoord & current,
 				   const NoximCoord & destination);

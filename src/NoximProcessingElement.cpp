@@ -181,18 +181,26 @@ NoximPacket NoximProcessingElement::trafficRandom()
 
 	// check for hotspot destination
 	for (uint i = 0; i < NoximGlobalParams::hotspots.size(); i++) {
-	    //cout << sc_time_stamp().to_double()/1000 << " PE " << local_id << " Checking node " << NoximGlobalParams::hotspots[i].first << " with P = " << NoximGlobalParams::hotspots[i].second << endl;
-
+#if 0
+	    cout << sc_time_stamp().to_double()/1000 << " PE "
+		 << local_id << " Checking node "
+		 << NoximGlobalParams::hotspots[i].first << " with P = "
+		 << NoximGlobalParams::hotspots[i].second << endl;
+#endif
+	    
 	    if (rnd >= range_start
 		&& rnd <
 		range_start + NoximGlobalParams::hotspots[i].second) {
 		if (local_id != NoximGlobalParams::hotspots[i].first) {
-		    //cout << sc_time_stamp().to_double()/1000 << " PE " << local_id <<" That is ! " << endl;
+#if 0
+		    cout << sc_time_stamp().to_double()/1000 << " PE "
+			 << local_id <<" That is ! " << endl;
+#endif
 		    p.dst_id = NoximGlobalParams::hotspots[i].first;
 		}
 		break;
 	    } else
-		range_start += NoximGlobalParams::hotspots[i].second;	// try next
+		range_start += NoximGlobalParams::hotspots[i].second; // try next
 	}
     } while (p.dst_id == p.src_id);
 
@@ -209,10 +217,10 @@ NoximPacket NoximProcessingElement::trafficTranspose1()
     NoximCoord src, dst;
 
     // Transpose 1 destination distribution
-    src.x = id2Coord(p.src_id).x;
-    src.y = id2Coord(p.src_id).y;
+    src = id2Coord (p.src_id);
     dst.x = NoximGlobalParams::mesh_dim_x - 1 - src.y;
     dst.y = NoximGlobalParams::mesh_dim_y - 1 - src.x;
+    dst.z = NoximGlobalParams::mesh_dim_z - 1 - src.z; // TODO
     fixRanges(src, dst);
     p.dst_id = coord2Id(dst);
 
@@ -229,10 +237,10 @@ NoximPacket NoximProcessingElement::trafficTranspose2()
     NoximCoord src, dst;
 
     // Transpose 2 destination distribution
-    src.x = id2Coord(p.src_id).x;
-    src.y = id2Coord(p.src_id).y;
+    src = id2Coord(p.src_id);
     dst.x = src.y;
     dst.y = src.x;
+    dst.z = src.z; // TODO
     fixRanges(src, dst);
     p.dst_id = coord2Id(dst);
 
@@ -266,12 +274,9 @@ inline double NoximProcessingElement::log2ceil(double x)
 
 NoximPacket NoximProcessingElement::trafficBitReversal()
 {
-
-    int nbits =
-	(int)
-	log2ceil((double)
-		 (NoximGlobalParams::mesh_dim_x *
-		  NoximGlobalParams::mesh_dim_y));
+    int nbits =	log2ceil (NoximGlobalParams::mesh_dim_x *
+			  NoximGlobalParams::mesh_dim_y *
+			  NoximGlobalParams::mesh_dim_z);
     int dnode = 0;
     for (int i = 0; i < nbits; i++)
 	setBit(dnode, i, getBit(local_id, nbits - i - 1));
@@ -288,12 +293,9 @@ NoximPacket NoximProcessingElement::trafficBitReversal()
 
 NoximPacket NoximProcessingElement::trafficShuffle()
 {
-
-    int nbits =
-	(int)
-	log2ceil((double)
-		 (NoximGlobalParams::mesh_dim_x *
-		  NoximGlobalParams::mesh_dim_y));
+    int nbits =	log2ceil (NoximGlobalParams::mesh_dim_x *
+			  NoximGlobalParams::mesh_dim_y *
+			  NoximGlobalParams::mesh_dim_z);
     int dnode = 0;
     for (int i = 0; i < nbits - 1; i++)
 	setBit(dnode, i + 1, getBit(local_id, i));
@@ -311,12 +313,9 @@ NoximPacket NoximProcessingElement::trafficShuffle()
 
 NoximPacket NoximProcessingElement::trafficButterfly()
 {
-
-    int nbits =
-	(int)
-	log2ceil((double)
-		 (NoximGlobalParams::mesh_dim_x *
-		  NoximGlobalParams::mesh_dim_y));
+    int nbits =	log2ceil (NoximGlobalParams::mesh_dim_x *
+			  NoximGlobalParams::mesh_dim_y *
+			  NoximGlobalParams::mesh_dim_z);
     int dnode = 0;
     for (int i = 1; i < nbits - 1; i++)
 	setBit(dnode, i, getBit(local_id, i));
